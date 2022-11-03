@@ -18,7 +18,7 @@
 
 
 
-#define PLUGIN_VERSION 		"2.0"
+#define PLUGIN_VERSION 		"2.1"
 
 /*=======================================================================================
 	Plugin Info:
@@ -31,6 +31,9 @@
 
 ========================================================================================
 	Change Log:
+
+2.1 (03-Nov-2022)
+	- Fixed client not connected errors. Thanks to "sonic155" for reporting.
 
 2.0 (02-Nov-2022)
 	- Removed Left4DHooks plugin requirement.
@@ -331,7 +334,7 @@ void LoadConfig()
 void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if( IsClientInGame(client) && GetClientTeam(client) == 3 )
+	if( client && IsClientInGame(client) && GetClientTeam(client) == 3 )
 	{
 		OnWeaponSwitch(client, -1);
 	}
@@ -340,7 +343,7 @@ void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if( IsClientInGame(client) )
+	if( client && IsClientInGame(client) )
 	{
 		if( g_bHookedThink[client] == true )
 		{
@@ -378,9 +381,6 @@ void OnWeaponSwitch(int client, int weapon)
 
 		// Match weapon classname to set speed, if available
 		if( g_smSpeedHurt.GetValue(sClass,		g_fSpeedHurt[client]) == false )	g_fSpeedHurt[client] = 0.0;
-		if( g_smSpeedRun.GetValue(sClass,		g_fSpeedRun[client]) == false )		g_fSpeedRun[client] = 0.0;
-		if( g_smSpeedWalk.GetValue(sClass,		g_fSpeedWalk[client]) == false )	g_fSpeedWalk[client] = 0.0;
-		if( g_smSpeedCrouch.GetValue(sClass,	g_fSpeedCrouch[client]) == false )	g_fSpeedCrouch[client] = 0.0;
 
 		// Melee weapons
 		if( g_fSpeedHurt[client] == -3.14 )
@@ -388,6 +388,12 @@ void OnWeaponSwitch(int client, int weapon)
 			GetEntPropString(weapon, Prop_Data, "m_strMapSetScriptName", sClass, sizeof(sClass));
 
 			if( g_smSpeedHurt.GetValue(sClass,		g_fSpeedHurt[client]) == false )	g_fSpeedHurt[client] = 0.0;
+			if( g_smSpeedRun.GetValue(sClass,		g_fSpeedRun[client]) == false )		g_fSpeedRun[client] = 0.0;
+			if( g_smSpeedWalk.GetValue(sClass,		g_fSpeedWalk[client]) == false )	g_fSpeedWalk[client] = 0.0;
+			if( g_smSpeedCrouch.GetValue(sClass,	g_fSpeedCrouch[client]) == false )	g_fSpeedCrouch[client] = 0.0;
+		}
+		else
+		{
 			if( g_smSpeedRun.GetValue(sClass,		g_fSpeedRun[client]) == false )		g_fSpeedRun[client] = 0.0;
 			if( g_smSpeedWalk.GetValue(sClass,		g_fSpeedWalk[client]) == false )	g_fSpeedWalk[client] = 0.0;
 			if( g_smSpeedCrouch.GetValue(sClass,	g_fSpeedCrouch[client]) == false )	g_fSpeedCrouch[client] = 0.0;
