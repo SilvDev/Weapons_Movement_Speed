@@ -1,6 +1,6 @@
 /*
 *	Weapons Movement Speed
-*	Copyright (C) 2021 Silvers
+*	Copyright (C) 2022 Silvers
 *
 *	This program is free software: you can redistribute it and/or modify
 *	it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 
 
 
-#define PLUGIN_VERSION 		"2.1"
+#define PLUGIN_VERSION 		"2.2"
 
 /*=======================================================================================
 	Plugin Info:
@@ -31,6 +31,9 @@
 
 ========================================================================================
 	Change Log:
+
+2.2 (08-Nov-2022)
+	- Fixed the players velocity resetting to default when jumping or staggering. Thanks to "Eärendil" for reporting.
 
 2.1 (03-Nov-2022)
 	- Fixed client not connected errors. Thanks to "sonic155" for reporting.
@@ -443,6 +446,20 @@ void PreThinkPost(int client)
 	// Fix movement speed bug when jumping or staggering
 	if( GetEntProp(client, Prop_Send, "m_hGroundEntity") == -1 || GetEntPropFloat(client, Prop_Send, "m_staggerTimer", 1) > -1.0 )
 	{
+		// Fix jumping resetting velocity to default
+		float value = GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
+		if( value != 1.0 )
+		{
+			float vVec[3];
+			GetEntPropVector(client, Prop_Data, "m_vecVelocity", vVec);
+			value = vVec[2];
+
+			ScaleVector(vVec, value);
+			vVec[2] = value; // Maintain default jump height
+
+			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vVec);
+		}
+
 		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", 1.0);
 		return;
 	}
