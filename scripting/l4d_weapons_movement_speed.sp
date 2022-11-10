@@ -18,7 +18,7 @@
 
 
 
-#define PLUGIN_VERSION 		"2.2"
+#define PLUGIN_VERSION 		"2.3"
 
 /*=======================================================================================
 	Plugin Info:
@@ -31,6 +31,9 @@
 
 ========================================================================================
 	Change Log:
+
+2.3 (10-Nov-2022)
+	- Fixed setting the wrong velocity when jumping. Thanks to "Maur0" for reporting.
 
 2.2 (08-Nov-2022)
 	- Fixed the players velocity resetting to default when jumping or staggering. Thanks to "Eärendil" for reporting.
@@ -452,10 +455,10 @@ void PreThinkPost(int client)
 		{
 			float vVec[3];
 			GetEntPropVector(client, Prop_Data, "m_vecVelocity", vVec);
-			value = vVec[2];
+			float height = vVec[2];
 
 			ScaleVector(vVec, value);
-			vVec[2] = value; // Maintain default jump height
+			vVec[2] = height; // Maintain default jump height
 
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vVec);
 		}
