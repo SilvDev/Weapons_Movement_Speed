@@ -18,7 +18,7 @@
 
 
 
-#define PLUGIN_VERSION 		"2.3"
+#define PLUGIN_VERSION 		"2.4"
 
 /*=======================================================================================
 	Plugin Info:
@@ -31,6 +31,11 @@
 
 ========================================================================================
 	Change Log:
+
+2.4 (12-Nov-2022)
+	- Fixed the Run and Walk speeds being inverted.
+	- Now optionally uses the "Lagged Movement" plugin by "Silvers" to prevent conflicts when multiple plugins try to set player speed:
+	- https://forums.alliedmods.net/showthread.php?t=340345
 
 2.3 (10-Nov-2022)
 	- Fixed setting the wrong velocity when jumping. Thanks to "Maur0" for reporting.
@@ -65,14 +70,14 @@
 #define CVAR_FLAGS			FCVAR_NOTIFY
 #define CONFIG_DATA			"data/l4d_weapons_movement_speed.cfg"
 
-#define MAX_SPEED_RUN		150.0
-#define MAX_SPEED_WALK		220.0
+#define MAX_SPEED_RUN		220.0
+#define MAX_SPEED_WALK		150.0
 #define MAX_SPEED_CROUCH	85.0
 #define MAX_SPEED_HURT		149.9
 
 
 ConVar g_hCvarAllow, g_hCvarMPGameMode, g_hCvarModes, g_hCvarModesOff, g_hCvarModesTog, g_hCvarDecayRate, g_hCvarLimpHealth;
-bool g_bCvarAllow, g_bMapStarted;
+bool g_bCvarAllow, g_bMapStarted, g_bLaggedMovement;
 bool g_bHookedThink[MAXPLAYERS+1];
 float g_fSpeedHurt[MAXPLAYERS+1];
 float g_fSpeedRun[MAXPLAYERS+1];
@@ -84,6 +89,8 @@ StringMap g_smSpeedHurt;
 StringMap g_smSpeedRun;
 StringMap g_smSpeedWalk;
 StringMap g_smSpeedCrouch;
+
+native any L4D_LaggedMovement(int client, float value, bool force = false);
 
 
 
@@ -108,7 +115,25 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 		return APLRes_SilentFailure;
 	}
 
+	MarkNativeAsOptional("L4D_LaggedMovement");
+
 	return APLRes_Success;
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if( strcmp(name, "LaggedMovement") == 0 )
+	{
+		g_bLaggedMovement = true;
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if( strcmp(name, "LaggedMovement") == 0 )
+	{
+		g_bLaggedMovement = false;
+	}
 }
 
 public void OnPluginStart()
@@ -355,7 +380,7 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 		{
 			g_bHookedThink[client] = false;
 			SDKUnhook(client, SDKHook_PreThinkPost, PreThinkPost);
-			SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", 1.0);
+			SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_bLaggedMovement ? L4D_LaggedMovement(client, 1.0, true) : 1.0);
 		}
 	}
 }
@@ -425,7 +450,8 @@ void OnWeaponSwitch(int client, int weapon)
 			{
 				g_bHookedThink[client] = false;
 				SDKUnhook(client, SDKHook_PreThinkPost, PreThinkPost);
-				SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", 1.0);
+
+				SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_bLaggedMovement ? L4D_LaggedMovement(client, 1.0, true) : 1.0);
 			}
 		}
 	} else {
@@ -434,7 +460,8 @@ void OnWeaponSwitch(int client, int weapon)
 		{
 			g_bHookedThink[client] = false;
 			SDKUnhook(client, SDKHook_PreThinkPost, PreThinkPost);
-			SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", 1.0);
+
+			SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_bLaggedMovement ? L4D_LaggedMovement(client, 1.0, true) : 1.0);
 		}
 	}
 }
@@ -446,6 +473,9 @@ void OnWeaponSwitch(int client, int weapon)
 // ====================================================================================================
 void PreThinkPost(int client)
 {
+	// =========================
+	// Plugins should include this code within their PreThinkPost function when modifying the m_flLaggedMovementValue value to prevent bugs
+	// =========================
 	// Fix movement speed bug when jumping or staggering
 	if( GetEntProp(client, Prop_Send, "m_hGroundEntity") == -1 || GetEntPropFloat(client, Prop_Send, "m_staggerTimer", 1) > -1.0 )
 	{
@@ -463,9 +493,12 @@ void PreThinkPost(int client)
 			TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vVec);
 		}
 
-		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", 1.0);
+		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_bLaggedMovement ? L4D_LaggedMovement(client, 1.0, true) : 1.0);
 		return;
 	}
+	// =========================
+
+
 
 	// Get health, check for limp speed
 	if( g_fSpeedHurt[client] )
@@ -480,7 +513,7 @@ void PreThinkPost(int client)
 		fHealth += GetClientHealth(client);
 		if( fHealth > 1.0 && fHealth <= g_iCvarLimpHealth )
 		{
-			SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_fSpeedHurt[client]);
+			SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_bLaggedMovement ? L4D_LaggedMovement(client, g_fSpeedHurt[client]) : g_fSpeedHurt[client]);
 			return;
 		}
 	}
@@ -490,14 +523,14 @@ void PreThinkPost(int client)
 
 	if( g_fSpeedCrouch[client] && buttons & IN_DUCK )
 	{
-		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_fSpeedCrouch[client]);
+		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_bLaggedMovement ? L4D_LaggedMovement(client, g_fSpeedCrouch[client]) : g_fSpeedCrouch[client]);
 	}
 	else if( g_fSpeedWalk[client] && buttons & IN_SPEED )
 	{
-		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_fSpeedWalk[client]);
+		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_bLaggedMovement ? L4D_LaggedMovement(client, g_fSpeedWalk[client]) : g_fSpeedWalk[client]);
 	}
 	else if( g_fSpeedRun[client] )
 	{
-		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_fSpeedRun[client]);
+		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", g_bLaggedMovement ? L4D_LaggedMovement(client, g_fSpeedRun[client]) : g_fSpeedRun[client]);
 	}
 }
