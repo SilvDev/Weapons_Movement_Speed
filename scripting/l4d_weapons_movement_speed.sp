@@ -18,7 +18,7 @@
 
 
 
-#define PLUGIN_VERSION 		"2.4"
+#define PLUGIN_VERSION 		"2.5"
 
 /*=======================================================================================
 	Plugin Info:
@@ -31,6 +31,10 @@
 
 ========================================================================================
 	Change Log:
+
+2.5 (26-Nov-2022)
+	- Fixed fix property not found errors.
+	- Plugin now resets speed to default on plugin end.
 
 2.4 (12-Nov-2022)
 	- Fixed the Run and Walk speeds being inverted.
@@ -157,6 +161,17 @@ public void OnPluginStart()
 	g_hCvarModesTog.AddChangeHook(ConVarChanged_Allow);
 	g_hCvarAllow.AddChangeHook(ConVarChanged_Allow);
 	g_hCvarAllow.AddChangeHook(ConVarChanged_Cvars);
+}
+
+public void OnPluginEnd()
+{
+	for( int i = 1; i <= MaxClients; i++ )
+	{
+		if( IsClientInGame(i) )
+		{
+			SetEntPropFloat(i, Prop_Send, "m_flLaggedMovementValue", g_bLaggedMovement ? L4D_LaggedMovement(i, 1.0, true) : 1.0);
+		}
+	}
 }
 
 public void OnConfigsExecuted()
@@ -411,12 +426,12 @@ void OnWeaponSwitch(int client, int weapon)
 		GetEdictClassname(current, sClass, sizeof(sClass));
 
 		// Match weapon classname to set speed, if available
-		if( g_smSpeedHurt.GetValue(sClass,		g_fSpeedHurt[client]) == false )	g_fSpeedHurt[client] = 0.0;
+		if( g_smSpeedHurt.GetValue(sClass,			g_fSpeedHurt[client]) == false )	g_fSpeedHurt[client] = 0.0;
 
 		// Melee weapons
 		if( g_fSpeedHurt[client] == -3.14 )
 		{
-			GetEntPropString(weapon, Prop_Data, "m_strMapSetScriptName", sClass, sizeof(sClass));
+			GetEntPropString(current, Prop_Data, "m_strMapSetScriptName", sClass, sizeof(sClass));
 
 			if( g_smSpeedHurt.GetValue(sClass,		g_fSpeedHurt[client]) == false )	g_fSpeedHurt[client] = 0.0;
 			if( g_smSpeedRun.GetValue(sClass,		g_fSpeedRun[client]) == false )		g_fSpeedRun[client] = 0.0;
