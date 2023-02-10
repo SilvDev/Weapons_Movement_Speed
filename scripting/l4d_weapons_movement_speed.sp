@@ -1,6 +1,6 @@
 /*
 *	Weapons Movement Speed
-*	Copyright (C) 2022 Silvers
+*	Copyright (C) 2023 Silvers
 *
 *	This program is free software: you can redistribute it and/or modify
 *	it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 
 
 
-#define PLUGIN_VERSION 		"2.5"
+#define PLUGIN_VERSION 		"2.6"
 
 /*=======================================================================================
 	Plugin Info:
@@ -31,6 +31,10 @@
 
 ========================================================================================
 	Change Log:
+
+2.6 (10-Feb-2023)
+	- Fixed not hooking the "pain_pills_decay_rate" and "survivor_limp_health" cvar changes.
+	- Minor changes to fix compatibility with the "Lagged Movement" plugin.
 
 2.5 (26-Nov-2022)
 	- Fixed fix property not found errors.
@@ -160,7 +164,8 @@ public void OnPluginStart()
 	g_hCvarModesOff.AddChangeHook(ConVarChanged_Allow);
 	g_hCvarModesTog.AddChangeHook(ConVarChanged_Allow);
 	g_hCvarAllow.AddChangeHook(ConVarChanged_Allow);
-	g_hCvarAllow.AddChangeHook(ConVarChanged_Cvars);
+	g_hCvarDecayRate.AddChangeHook(ConVarChanged_Cvars);
+	g_hCvarLimpHealth.AddChangeHook(ConVarChanged_Cvars);
 }
 
 public void OnPluginEnd()
@@ -490,9 +495,10 @@ void PreThinkPost(int client)
 {
 	// =========================
 	// Plugins should include this code within their PreThinkPost function when modifying the m_flLaggedMovementValue value to prevent bugs
+	// Written by "Silvers"
 	// =========================
 	// Fix movement speed bug when jumping or staggering
-	if( GetEntProp(client, Prop_Send, "m_hGroundEntity") == -1 || GetEntPropFloat(client, Prop_Send, "m_staggerTimer", 1) > -1.0 )
+	if( GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 || GetEntPropFloat(client, Prop_Send, "m_staggerTimer", 1) > -1.0 )
 	{
 		// Fix jumping resetting velocity to default
 		float value = GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
