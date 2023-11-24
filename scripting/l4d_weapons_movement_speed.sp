@@ -33,7 +33,7 @@
 	Change Log:
 
 2.7 (24-Nov-2023)
-	- L4D1: Fixed movement speed bug after staggering when the stagger timer didn't reset (due to some plugins such as "Stagger Gravity").
+	- Fixed movement speed bug after staggering when the stagger timer didn't reset (due to some plugins such as "Stagger Gravity").
 
 2.6 (10-Feb-2023)
 	- Fixed not hooking the "pain_pills_decay_rate" and "survivor_limp_health" cvar changes.
