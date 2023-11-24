@@ -18,7 +18,7 @@
 
 
 
-#define PLUGIN_VERSION 		"2.6"
+#define PLUGIN_VERSION 		"2.7"
 
 /*=======================================================================================
 	Plugin Info:
@@ -31,6 +31,9 @@
 
 ========================================================================================
 	Change Log:
+
+2.7 (24-Nov-2023)
+	- L4D1: Fixed movement speed bug after staggering when the stagger timer didn't reset (due to some plugins such as "Stagger Gravity").
 
 2.6 (10-Feb-2023)
 	- Fixed not hooking the "pain_pills_decay_rate" and "survivor_limp_health" cvar changes.
@@ -498,7 +501,7 @@ void PreThinkPost(int client)
 	// Written by "Silvers"
 	// =========================
 	// Fix movement speed bug when jumping or staggering
-	if( GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 || GetEntPropFloat(client, Prop_Send, "m_staggerTimer", 1) > -1.0 )
+	if( GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1 || GetEntPropFloat(client, Prop_Send, "m_staggerTimer", 1) > GetGameTime() )
 	{
 		// Fix jumping resetting velocity to default
 		float value = GetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue");
